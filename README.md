@@ -79,7 +79,7 @@ Create a web platform to help users break down their long-term goals into manage
 - Add progress tracking, reminders, and reflection tools
 - Optimize syncing, privacy, and offline support
 
-### Week 10: Testing & Launch
+### Week 10: Testing &  Launch
 - Final testing and bug fixes
 - Prepare documentation and user guide
 - Launch the platform
@@ -92,3 +92,4 @@ Create a web platform to help users break down their long-term goals into manage
 
 **Developer**: Tressi Tian  
 📧 tressi@uw.edu
+
