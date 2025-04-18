@@ -1,6 +1,29 @@
 # TECHIN510_project
 
-##Apr 18 Wk3 update
+## Apr 18 Wk3 update
+
+## 🛠️ Environment Setup & Installation
+
+Follow these steps to run the project locally using Streamlit.
+
+### Step 1: Create a Virtual Environment
+
+```bash
+cd TECHIN510_project
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+```
+### Step 2: Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### Step 3: Run the App
+```bash
+streamlit run GoalAchiever.py
+```
+
+
 # 🎯 GoalAchiever: LLM-Powered Goal Planner for Students
 
 ## 🌟 Overview
