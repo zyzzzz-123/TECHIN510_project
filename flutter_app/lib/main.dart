@@ -3,9 +3,30 @@ import 'src/screens/home/home_screen.dart';
 import 'src/screens/login/login_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'src/providers/task_provider.dart';
+import 'src/app.dart';
+import 'src/providers/theme_provider.dart';
+import 'src/providers/auth_provider.dart';
+import 'src/providers/chat_provider.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 void main() {
-  runApp(const MyApp());
+  // 初始化timeago的中文支持
+  timeago.setLocaleMessages('zh', timeago.ZhMessages());
+  timeago.setDefaultLocale('zh');
+  
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()),
+      ],
+      child: const GoalAchieverApp(),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -17,6 +38,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   bool? _loggedIn;
+  int? _userId;
 
   @override
   void initState() {
@@ -28,12 +50,15 @@ class _MyAppState extends State<MyApp> {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _loggedIn = prefs.getBool('logged_in') ?? false;
+      _userId = prefs.getInt('user_id');
     });
   }
 
   Future<void> _onLogin() async {
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
       _loggedIn = true;
+      _userId = prefs.getInt('user_id');
     });
   }
 
@@ -43,6 +68,7 @@ class _MyAppState extends State<MyApp> {
     await prefs.remove('user_id');
     setState(() {
       _loggedIn = false;
+      _userId = null;
     });
   }
 
@@ -53,27 +79,47 @@ class _MyAppState extends State<MyApp> {
         home: Scaffold(body: Center(child: CircularProgressIndicator())),
       );
     }
+    if (_loggedIn! && _userId != null) {
+      return ChangeNotifierProvider(
+        create: (_) => TaskProvider(userId: _userId!)..fetchTasks(),
+        child: MaterialApp(
+          title: 'GoalAchiever',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF3F51B5),
+              foregroundColor: Colors.white,
+              elevation: 2,
+              titleTextStyle: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+              iconTheme: IconThemeData(color: Colors.white),
+              systemOverlayStyle: SystemUiOverlayStyle.light,
+              surfaceTintColor: Color(0xFF3F51B5),
+            ),
+            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+              backgroundColor: Color(0xFF3F51B5),
+              selectedItemColor: Colors.white,
+              unselectedItemColor: Color(0xFFB0BEC5),
+              selectedIconTheme: IconThemeData(color: Colors.white),
+              unselectedIconTheme: IconThemeData(color: Color(0xFFB0BEC5)),
+              showUnselectedLabels: true,
+              type: BottomNavigationBarType.fixed,
+            ),
+            useMaterial3: false,
+          ),
+          home: HomeScreen(onLogout: _onLogout),
+        ),
+      );
+    }
     return MaterialApp(
       title: 'GoalAchiever',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF3F51B5), // 深蓝色
+          backgroundColor: Color(0xFF3F51B5),
           foregroundColor: Colors.white,
           elevation: 2,
           titleTextStyle: TextStyle(
@@ -82,13 +128,13 @@ class _MyAppState extends State<MyApp> {
             fontWeight: FontWeight.bold,
           ),
           iconTheme: IconThemeData(color: Colors.white),
-          systemOverlayStyle: SystemUiOverlayStyle.light, // 状态栏白字
-          surfaceTintColor: Color(0xFF3F51B5), // 关键
+          systemOverlayStyle: SystemUiOverlayStyle.light,
+          surfaceTintColor: Color(0xFF3F51B5),
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color(0xFF3F51B5), // 深蓝色
-          selectedItemColor: Colors.white,    // 选中项白色
-          unselectedItemColor: Color(0xFFB0BEC5), // 未选中项浅灰
+          backgroundColor: Color(0xFF3F51B5),
+          selectedItemColor: Colors.white,
+          unselectedItemColor: Color(0xFFB0BEC5),
           selectedIconTheme: IconThemeData(color: Colors.white),
           unselectedIconTheme: IconThemeData(color: Color(0xFFB0BEC5)),
           showUnselectedLabels: true,
@@ -96,9 +142,7 @@ class _MyAppState extends State<MyApp> {
         ),
         useMaterial3: false,
       ),
-      home: _loggedIn!
-          ? HomeScreen(onLogout: _onLogout)
-          : LoginScreen(onLogin: _onLogin),
+      home: LoginScreen(onLogin: _onLogin),
     );
   }
 }

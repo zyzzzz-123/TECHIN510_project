@@ -82,3 +82,32 @@ async def test_get_user_tasks():
         assert isinstance(response.json(), list)
         assert len(response.json()) == 0
         # (Optional) You can add more logic to create a task and test retrieval 
+
+@pytest.mark.asyncio
+async def test_create_task_types_and_validation():
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        # Register a user
+        unique_email = f"typetest_{random.randint(10000,99999)}@example.com"
+        register_data = {"email": unique_email, "password": "testpassword123"}
+        response = await ac.post("/api/auth/register", json=register_data)
+        user_id = response.json()["id"]
+        # DDL task (should succeed)
+        ddl_data = {"user_id": user_id, "text": "DDL Task", "type": "ddl", "due_date": "2025-01-01T12:00:00"}
+        response = await ac.post("/api/tasks/", json=ddl_data)
+        assert response.status_code == 201
+        # DDL task missing due_date (should fail)
+        ddl_data_missing = {"user_id": user_id, "text": "DDL Task", "type": "ddl"}
+        response = await ac.post("/api/tasks/", json=ddl_data_missing)
+        assert response.status_code == 422
+        # Event task (should succeed)
+        event_data = {"user_id": user_id, "text": "Event Task", "type": "event", "start_date": "2025-01-01T10:00:00", "end_date": "2025-01-01T11:00:00"}
+        response = await ac.post("/api/tasks/", json=event_data)
+        assert response.status_code == 201
+        # Event task missing start_date (should fail)
+        event_data_missing = {"user_id": user_id, "text": "Event Task", "type": "event", "end_date": "2025-01-01T11:00:00"}
+        response = await ac.post("/api/tasks/", json=event_data_missing)
+        assert response.status_code == 422
+        # Longterm task (should succeed)
+        longterm_data = {"user_id": user_id, "text": "Longterm Task", "type": "longterm"}
+        response = await ac.post("/api/tasks/", json=longterm_data)
+        assert response.status_code == 201 
