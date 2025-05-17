@@ -10,3 +10,6 @@ python-dotenv
 httpx
 pytest
 pytest-asyncio
+openai
+email-validator
+requests
