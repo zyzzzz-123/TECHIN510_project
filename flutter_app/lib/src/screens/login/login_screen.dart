@@ -4,6 +4,7 @@ import '../../config.dart';
 import '../home/home_screen.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:convert' show base64Url, utf8;
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -84,16 +85,35 @@ class _LoginScreenState extends State<LoginScreen> {
         // 获取用户信息
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('logged_in', true);
-        // 需要获取用户id，建议后端登录返回用户id
-        // 这里假设后端返回 {"access_token":..., "token_type":..., "user_id":...}
+        
+        // 解析JWT token获取用户ID
         final data = jsonDecode(response.body);
-        if (data['user_id'] != null) {
-          await prefs.setInt('user_id', data['user_id']);
+        final String token = data['access_token'];
+        
+        // 保存token
+        await prefs.setString('access_token', token);
+        
+        // 从token中提取用户ID (JWT的payload部分包含sub字段，即用户ID)
+        try {
+          final parts = token.split('.');
+          if (parts.length == 3) {
+            final payload = parts[1];
+            final normalized = base64Url.normalize(payload);
+            final decodedPayload = utf8.decode(base64Url.decode(normalized));
+            final payloadMap = jsonDecode(decodedPayload);
+            if (payloadMap['sub'] != null) {
+              final userId = int.tryParse(payloadMap['sub']);
+              if (userId != null) {
+                await prefs.setInt('user_id', userId);
+              }
+            }
+          }
+        } catch (e) {
+          print('Error decoding JWT: $e');
         }
+        
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        widget.onLogin?.call();
       } else {
         setState(() {
           _error = '登录失败: ${response.body}';
@@ -104,9 +124,9 @@ class _LoginScreenState extends State<LoginScreen> {
         _error = '网络错误: $e';
       });
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+    setState(() {
+      _isLoading = false;
+    });
     }
   }
 
@@ -120,52 +140,58 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Login')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-                validator: emailValidator,
-                onChanged: (_) => _validateForm(),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Form(
+              key: _formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: 'Email'),
+                    validator: emailValidator,
+                    onChanged: (_) => _validateForm(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: const InputDecoration(labelText: 'Password'),
+                    obscureText: true,
+                    validator: passwordValidator,
+                    onChanged: (_) => _validateForm(),
+                  ),
+                  const SizedBox(height: 24),
+                  if (_error != null) ...[
+                    Text(_error!, style: const TextStyle(color: Colors.red)),
+                    const SizedBox(height: 12),
+                  ],
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isFormValid && !_isLoading ? _onLoginPressed : null,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Text('Login'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _onRegisterPressed,
+                    child: const Text('没有账号？注册'),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                validator: passwordValidator,
-                onChanged: (_) => _validateForm(),
-              ),
-              const SizedBox(height: 24),
-              if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.red)),
-                const SizedBox(height: 12),
-              ],
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isFormValid && !_isLoading ? _onLoginPressed : null,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
-                      : const Text('Login'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
-                onPressed: _onRegisterPressed,
-                child: const Text('没有账号？注册'),
-              ),
-            ],
+            ),
           ),
         ),
       ),

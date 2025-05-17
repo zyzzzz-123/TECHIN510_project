@@ -1,219 +1,121 @@
-# TECHIN510_project
+# GoalAchiever: Cross-Platform Goal Management App
 
-## Apr 18 Wk3 update
+## Overview
+GoalAchiever is a cross-platform, mobile-first goal management app for students, built with a Flutter frontend and a FastAPI backend. It helps users break down long-term goals into actionable daily tasks, track progress, and leverage AI for smart planning. The project is modular, supports multi-user authentication, and is designed for future extensibility (e.g., gamification, analytics, cloud sync).
 
-## 🛠️ Environment Setup & Installation
+---
 
-Follow these steps to run the project locally using Streamlit.
+## Environment Setup & Installation
 
-### Step 1: Create a Virtual Environment
-
+### Backend (FastAPI)
+1. Create a virtual environment and activate it:
 ```bash
-cd TECHIN510_project
+   cd backend
 python3 -m venv .venv
-source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+   source .venv/bin/activate
 ```
-### Step 2: Install Dependencies
+2. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+3. Run the backend server:
+   ```bash
+   cd backend
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+   - The backend uses SQLite by default. To switch to PostgreSQL/MySQL, update `DATABASE_URL` in the `.env` file.
 
-### Step 3: Run the App
+### Frontend (Flutter)
+1. Install Flutter SDK (https://docs.flutter.dev/get-started/install)
+2. Get dependencies:
+   ```bash
+   cd flutter_app
+   flutter pub get
+   ```
+3. Run the app (choose your device/emulator):
 ```bash
-streamlit run GoalAchiever.py
-```
+   flutter run
+   ```
+   - Update `lib/src/config.dart` with your backend's IP if running on a real device.
 
+### AI Integration
+The app integrates with both OpenAI and Google Gemini AI models for the chatbot feature:
 
-# 🎯 GoalAchiever: LLM-Powered Goal Planner for Students
+1. Set up API keys in the backend:
+   - Create a `.env` file in the backend directory with:
+   ```
+   OPENAI_API_KEY=your_openai_api_key
+   GEMINI_API_KEY=your_gemini_api_key
+   ```
+   - You can use either one or both APIs (the app will use available APIs)
+   - Set `DEFAULT_AI_MODEL=openai` or `DEFAULT_AI_MODEL=gemini` to choose your preferred default
 
-## 🌟 Overview
-**GoalAchiever** is an AI-powered productivity tool that helps college students break down long-term goals into actionable daily tasks using Large Language Models (LLMs). It intelligently fits those tasks into their existing schedule, helping them reclaim wasted time and turn it into meaningful self-improvement.
-
----
-
-## 🧠 Why This Matters
-
-Many students unintentionally spend hours on social media or aimless scrolling. Meanwhile, long-term goals like learning a new skill, preparing for a career, or personal growth often get pushed aside. GoalAchiever bridges that gap by:
-
-- Analyzing daily routines
-- Suggesting personalized goals
-- Planning achievable steps into their calendar
-- Tracking progress and adapting along the way
-
----
-
-## 👥 Target Audience
-College students who feel lost, overwhelmed, or under-motivated—but want to make better use of their time to grow academically, personally, or professionally.
+2. In the Flutter app:
+   - The chat interface includes a dropdown to switch between models
+   - The backend automatically handles API communication and error fallback
 
 ---
 
-## 🚀 Key Features
+## Project Architecture
 
-### ⏱️ Time Availability Analysis
-- Analyze user routines: sleep, meals, and class schedule
-- Identify free time blocks and categorize them (deep focus time vs microbreaks)
-
-### 🎯 Smart Goal Planning
-- Recommend goals in categories like:
-  - Academic growth
-  - Personal development
-  - New skill learning
-- Use LLM to break goals down into:
-  - Long-term objectives
-  - Weekly milestones
-  - Daily tasks
-
-### 📅 Schedule Integration
-- Fit tasks into the user’s existing schedule
-- Adjust based on energy curve and time of day
-
-### 🤖 Chat-Based Assistant
-- Plan and revise tasks via natural language
-- Provide reflections, tips, or motivational nudges
-- React to real-life changes (“I have a party tonight, reschedule for me”)
-
-### 📈 Progress Tracking & Adaptive Planning
-- Visual progress bars for each goal
-- Weekly performance summary
-- Automatic suggestions to increase/reduce task difficulty or focus
-
-### 🕹️ Gamification
-- Task streaks, reward points, motivational badges
-- Customizable avatars or UI themes
+- **Backend:** FastAPI, SQLAlchemy, Alembic, JWT, Pydantic, SQLite (default)
+- **Frontend:** Flutter, Provider, http, shared_preferences
+- **AI Integration:** OpenAI API, Google Gemini API
+- **Modular structure:**
+  - Backend: `app/` (models, schemas, services, api, core, db)
+  - Frontend: `lib/src/` (screens, models, services, providers, widgets)
 
 ---
 
-## 📱 App Structure
-
-### 1. **Home (My Goals)**
-- Displays current goals with progress
-- Lists today’s recommended tasks
-- Smart suggestions for new goals
-
-### 2. **Calendar View**
-- Visual schedule showing tasks, milestones, and class conflicts
-- Add/remove/edit tasks with one click
-
-### 3. **Chat Assistant**
-- Interactive AI chat to help with:
-  - Planning and adjustments
-  - Motivational conversations
-  - Reflecting on weekly progress
+## Current Progress
+- ✅ FastAPI backend: user registration, login, JWT, user-specific task CRUD, task types (todo/long-term), user info API
+- ✅ Flutter frontend: registration, login/logout, persistent login, Home (todo/complete/long-term), Chat, User/Profile, Provider state management, modern UI theme
+- ✅ API integration: all requests use user id, baseUrl is globally configurable
+- ✅ Multi-user support, SQLite auto-creates tables for dev/testing
+- ✅ iOS/Android/web compatible, with network and permission fixes for real devices
+- ✅ AI integration: OpenAI and Google Gemini support for the chat assistant
+- ✅ TDD: core features covered by tests; more tests planned
+- ✅ Deployment deferred: focus is on feature completion and robustness before cloud deployment
 
 ---
 
-## 🛠️ Built With
-- [Streamlit](https://streamlit.io/) – For interactive UI
-- LLM APIs (OpenAI, Claude, etc.) – For goal breakdown & chat
-- [Python](https://www.python.org/) – Backend logic
-- Session State – For in-memory data management
+## Next Steps
+- [ ] AI assistant / smart recommendation features (if needed)
+- [ ] User profile editing, avatar and personalization features
+- [ ] Further UI improvements (e.g., gradients, rounded corners, animations)
+- [ ] Multi-environment auto-switching (dev/prod) and configuration management
+- [ ] Add more test cases to improve robustness
+- [ ] Calendar, progress tracking, and reflection pages
+- [ ] LLM API integration (goal breakdown, smart suggestions)
+- [ ] Local storage / offline support
+- [ ] Documentation and handoff
+- [ ] Deployment and production environment setup (scheduled for later)
 
 ---
 
-## ✨ Coming Soon
-- User login & cloud sync
-- Habit analytics dashboard
-- Mood + energy tracker integration
+## Vision & Features (Planned and Implemented)
+- Goal breakdown and smart scheduling (AI-powered, in progress)
+- User registration, login, and multi-user data isolation (done)
+- Task CRUD, status, and type (done)
+- Chat-based assistant for task creation (done)
+- Progress tracking and adaptive planning (planned)
+- Calendar and reflection tools (planned)
+- Gamification, analytics, and cloud sync (future)
+- Modern, mobile-friendly UI (done, ongoing polish)
 
 ---
 
-## 💡 Inspiration
-
-This project was inspired by the desire to reclaim wasted time and help students pursue long-term growth, even with small pockets of free time. With the help of AI, we believe self-improvement can be made easier, smarter, and more rewarding.
-
----
-
-
-
-## Client (April 4)
-## LifeFlow – Smart Goal Planner
-
-**LifeFlow** is a simple and intelligent life planning tool that helps users break down big goals into clear, actionable daily steps. Whether you're learning a new skill, building a habit, or working on a long-term project, LifeFlow helps you stay organized, motivated, and on track.
-
-## 🚀 Project Objectives
-
-- Turn long-term goals into structured milestones and daily tasks  
-- Support users with smart scheduling, reminders, and progress tracking  
-- Promote consistency through regular reflections and adaptive planning
-
-## 👥 Target Users
-
-- Students, freelancers, professionals, creatives  
-- Anyone who wants to improve personal productivity and stay focused on meaningful goals
-
-## 🧩 Key Features (Deliverables)
-
-- Goal setup with timeline and category  
-- AI-assisted or manual goal breakdown  
-- Daily / weekly planner view  
-- Progress tracking dashboard  
-- Weekly reflection and adaptive suggestions  
-- Cross-platform support (web + mobile)
-
-## ⚠️ Special Constraints
-
-- Must comply with data privacy regulations (e.g. GDPR)  
-- Real-time sync across devices  
-- Offline access for core planning features
-
-## 🎯 Expected Outcome
-
-- Higher goal completion rate  
-- Better time and task management  
-- A flexible system for long-term personal and professional growth
-
-# Project Scope: Goal-Tracking Mobile App
-
-## 1. Overview
-Create a web platform to help users break down their long-term goals into manageable daily and weekly steps, making those goals more achievable.
-
-**Project Duration**: 10 weeks  
-**Target Users**: Students who want to achieve a long-term goal
-
----
-
-## 2. Features
-- **Goal Input & Breakdown**: Users enter their goals, and the system (powered by an LLM) breaks them down into smaller tasks.
-- **Task Confirmation & Calendar Sync**: Users can confirm steps and add them to a calendar.
-- **Planner Interface**: A daily and weekly view that helps users stay on track.
-- **Progress Tracking**: Dashboard to monitor goal progression.
-- **Reflection & Review**: Interface for users to reflect on their progress and adjust accordingly.
-
----
-
-## 3. Timeline
-
-### Week 1–2: Planning & Research *(Now)*
-- Define core features
-- Research user needs
-- Explore similar apps
-- Create low-fidelity wireframes
-- Choose tech stack and tools
-
-### Week 3–4: Design & Prototyping
-- Design main user flows
-- Build a clickable prototype
-- Conduct user testing and refine design
-
-### Week 5–7: Core Development
-- Develop core features: goal setup, task breakdown, daily planning
-- Implement user login and data synchronization
-
-### Week 8–9: Progress Features & Polish
-- Add progress tracking, reminders, and reflection tools
-- Optimize syncing, privacy, and offline support
-
-### Week 10: Testing &  Launch
-- Final testing and bug fixes
-- Prepare documentation and user guide
-- Launch the platform
-
----
-
-## 4. Team Contact
-**Client**: Yuzhe Zhang  
+## Team Contact
+**Client:** Yuzhe Zhang  
 📧 yuzhez23@uw.edu
 
-**Developer**: Tressi Tian  
+**Developer:** Tressi Tian  
 📧 tressi@uw.edu
+
+---
+
+## Notes
+- This README reflects the current cross-platform (Flutter + FastAPI) architecture. The original Streamlit prototype is deprecated.
+- Deployment is deferred until feature completion and robustness are achieved.
+- For more details, see the `/backend` and `/flutter_app` directories.
 

@@ -61,6 +61,128 @@ The backend supports both OpenAI and Google Gemini for AI chat functionality:
    }
    ```
 
+## Task Intent API
+
+The backend provides a powerful AI task management interface through the Task Intent API:
+
+### 1. Analyzing Task Intent
+
+To analyze a user's message for task-related intent:
+
+```
+POST /api/tasks/intent
+{
+  "message": "添加一个明天截止的写报告任务",
+  "model_provider": "openai"
+}
+```
+
+Response:
+```json
+{
+  "intent": {
+    "action": "add_task",
+    "task": {
+      "text": "写报告",
+      "due_date": "2023-06-15T00:00:00.000Z"
+    },
+    "confirmation_prompt": "是否要添加一个明天截止的写报告任务？"
+  }
+}
+```
+
+For query intent, the API will also return matching tasks:
+```
+POST /api/tasks/intent
+{
+  "message": "显示所有今天到期的任务"
+}
+```
+
+Response:
+```json
+{
+  "intent": {
+    "action": "query_task",
+    "task": {
+      "date_filter": "today"
+    },
+    "confirmation_prompt": "以下是今天到期的任务："
+  },
+  "tasks": [
+    {
+      "id": 1,
+      "text": "写报告",
+      "status": "todo",
+      "type": "todo",
+      "due_date": "2023-06-15T00:00:00.000Z",
+      "created_at": "2023-06-14T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### 2. Executing Task Intent
+
+To execute a task intent after confirmation:
+
+```
+POST /api/tasks/execute_intent
+{
+  "intent": {
+    "action": "add_task",
+    "task": {
+      "text": "写报告",
+      "due_date": "2023-06-15T00:00:00.000Z"
+    }
+  }
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "message": "已创建任务: 写报告",
+  "task": {
+    "id": 1,
+    "text": "写报告",
+    "status": "todo",
+    "type": "todo",
+    "due_date": "2023-06-15T00:00:00.000Z"
+  }
+}
+```
+
+### 3. Chat Integration
+
+You can also analyze task intent directly in chat requests:
+
+```
+POST /chat/
+{
+  "message": "添加一个明天截止的写报告任务",
+  "model_provider": "openai",
+  "analyze_task_intent": true
+}
+```
+
+Response:
+```json
+{
+  "response": "是否要添加一个明天截止的写报告任务？",
+  "task_intent": {
+    "action": "add_task",
+    "task": {
+      "text": "写报告",
+      "due_date": "2023-06-15T00:00:00.000Z"
+    }
+  }
+}
+```
+
+If no task intent is detected, the response will just contain the AI's reply.
+
 ## Docker Local Setup
 
 1. Build and start the containers: `docker-compose up -d --build`

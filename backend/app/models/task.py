@@ -12,3 +12,5 @@ class Task(Base):
     type = Column(String, default="todo")  # todo, long_term, ...
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    start_date = Column(DateTime, nullable=True)
+    end_date = Column(DateTime, nullable=True)

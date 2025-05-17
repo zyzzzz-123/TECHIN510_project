@@ -6,12 +6,16 @@ class TaskCreate(BaseModel):
     user_id: int
     text: str
     due_date: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     type: Optional[str] = "todo"
 
 class TaskUpdate(BaseModel):
     status: Optional[str] = None
     text: Optional[str] = None
     due_date: Optional[datetime] = None
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     type: Optional[str] = None
 
 class TaskResponse(BaseModel):
@@ -19,6 +23,8 @@ class TaskResponse(BaseModel):
     user_id: int
     text: str
     due_date: Optional[datetime]
+    start_date: Optional[datetime]
+    end_date: Optional[datetime]
     status: str
     type: str
     created_at: Optional[datetime]
