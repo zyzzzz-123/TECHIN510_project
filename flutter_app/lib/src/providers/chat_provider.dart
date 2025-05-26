@@ -120,7 +120,7 @@ class ChatProvider extends ChangeNotifier {
         Map<String, dynamic>? actionJson;
         try {
           actionJson = jsonDecode(aiReply);
-          if (actionJson is! Map || actionJson['action'] == null) {
+          if (actionJson is! Map || (actionJson?['action'] == null)) {
             actionJson = null;
           }
         } catch (_) {
