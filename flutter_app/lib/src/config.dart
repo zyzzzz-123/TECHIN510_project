@@ -22,7 +22,9 @@ class Config {
   static const String devNetworkUrl = 'http://macbook-pro-307.local:8000';
   
   // Production URL - 在成功部署后，用实际的 Railway URL 替换这里
-  static const String productionUrl = 'https://valiant-enjoyment-production-5fba.up.railway.app';
+  // static const String productionUrl = 'https://techin510project-production.up.railway.app';
+  static const String productionUrl = 'http://valiant-enjoyment-production-5fba.up.railway.app';
+
 
   // Staging URL
   static const String stagingUrl = 'https://staging-api.your-domain.com';

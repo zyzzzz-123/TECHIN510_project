@@ -28,15 +28,6 @@ class AuthProvider extends ChangeNotifier {
         _userId = authData['userId'];
         _username = authData['username'];
         _token = authData['token'];
-      } else {
-        // 开发环境：写死一个测试账号，自动登录
-        _userId = 1;
-        _username = 'testuser';
-        _token = 'test_token';
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('logged_in', true);
-        await prefs.setInt('user_id', _userId!);
-        await prefs.setString('access_token', _token!);
       }
     } catch (e) {
       _error = 'Authentication failed: $e';

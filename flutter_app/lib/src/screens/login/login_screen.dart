@@ -8,6 +8,7 @@ import 'dart:convert' show base64Url, utf8;
 import 'register_screen.dart';
 import 'package:provider/provider.dart';
 import '../../providers/chat_provider.dart';
+import '../../providers/task_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback? onLogin;
@@ -110,6 +111,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 // 同步到 ChatProvider
                 final chatProvider = Provider.of<ChatProvider>(context, listen: false);
                 chatProvider.updateUser(userId, token);
+                // 同步到 TaskProvider
+                final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+                taskProvider.userId = userId;
               }
             }
           }
