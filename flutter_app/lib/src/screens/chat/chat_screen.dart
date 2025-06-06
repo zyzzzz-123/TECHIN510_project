@@ -6,6 +6,8 @@ import '../../widgets/task_confirmation_card.dart';
 import 'dart:convert';
 import 'package:provider/provider.dart';
 import '../../providers/task_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/chat_provider.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -16,13 +18,24 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  final List<Map<String, String>> _messages = []; // {'role': 'user'/'assistant', 'content': ...}
   bool _sending = false;
   String? _error;
-  TaskIntent? _pendingTaskIntent; // 待确认的任务意图
-  Map<String, dynamic>? _pendingAction; // Holds action JSON if waiting for confirmation
-  String _selectedModel = 'openai'; // 默认使用OpenAI
-  List<Task>? _queriedTasks; // 查询到的任务列表
+  TaskIntent? _pendingTaskIntent;
+  Map<String, dynamic>? _pendingAction;
+  String _selectedModel = 'gemini';
+  List<Task>? _queriedTasks;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      if (authProvider.isAuthenticated) {
+        chatProvider.updateUser(authProvider.userId, authProvider.token);
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -35,59 +48,13 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
     setState(() {
       _sending = true;
-      _messages.add({'role': 'user', 'content': text});
       _error = null;
     });
     _controller.clear();
-    
     try {
-      // 获取当前用户ID
-      final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-      final userId = taskProvider.userId;
-      
-      if (userId == null) {
-        throw Exception('请先登录');
-      }
-      
-      // 处理用户请求，检查是否是任务操作
-      final taskIntent = await TaskAgentService.processUserRequest(userId, text);
-      
-      if (taskIntent != null) {
-        // 如果是任务操作，显示确认界面
-        setState(() {
-          _pendingTaskIntent = taskIntent;
-        });
-        
-        // 如果是查询操作，直接执行
-        if (taskIntent.action == TaskAction.query) {
-          await _executeQueryTask(userId, text);
-        }
-      } else {
-        // 如果不是任务操作，使用正常的聊天AI回复
-        final aiReply = await ChatService.sendMessages(_messages, modelProvider: _selectedModel);
-        
-        // 尝试解析为JSON，检查是否是旧格式的任务操作
-        Map<String, dynamic>? actionJson;
-        try {
-          actionJson = jsonDecode(aiReply);
-        } catch (_) {
-          actionJson = null;
-        }
-        
-        if (actionJson != null && actionJson is Map && 
-            actionJson['action'] != null && 
-            actionJson['confirmation_prompt'] != null) {
-          // 兼容旧的确认方式
-          setState(() {
-            _pendingAction = actionJson;
-            _messages.add({'role': 'assistant', 'content': actionJson?['confirmation_prompt']});
-          });
-        } else {
-          setState(() {
-            _messages.add({'role': 'assistant', 'content': aiReply});
-          });
-        }
-      }
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      chatProvider.setSelectedModel('gemini');
+      await chatProvider.sendMessage(text);
     } catch (e) {
       setState(() {
         _error = 'AI assistant error: $e';
@@ -103,10 +70,6 @@ class _ChatScreenState extends State<ChatScreen> {
       final tasks = await TaskAgentService.queryTasks(userId, query);
       setState(() {
         _queriedTasks = tasks;
-        _messages.add({
-          'role': 'assistant', 
-          'content': '查询到 ${tasks.length} 个任务'
-        });
       });
     } catch (e) {
       setState(() {
@@ -165,8 +128,6 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       
       setState(() {
-        _messages.add({'role': 'user', 'content': '确认'});
-        _messages.add({'role': 'assistant', 'content': resultMessage});
         _pendingTaskIntent = null;
         _queriedTasks = null;
       });
@@ -184,8 +145,6 @@ class _ChatScreenState extends State<ChatScreen> {
   // 取消任务操作
   void _cancelTaskAction() {
     setState(() {
-      _messages.add({'role': 'user', 'content': '取消'});
-      _messages.add({'role': 'assistant', 'content': '已取消操作'});
       _pendingTaskIntent = null;
     });
   }
@@ -197,7 +156,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final action = pending['action'];
     final task = pending['task'];
     setState(() {
-      _messages.add({'role': 'user', 'content': 'Confirm'});
+      _sending = true;
     });
     // Only support add_task for now
     if (action == 'add_task' && task != null) {
@@ -208,133 +167,112 @@ class _ChatScreenState extends State<ChatScreen> {
       final dueDate = dueDateStr != null ? DateTime.tryParse(dueDateStr) : null;
       await provider.addTask(text, dueDate: dueDate);
       setState(() {
-        _messages.add({'role': 'assistant', 'content': 'Task added: $text'});
         _pendingAction = null;
       });
     } else {
       setState(() {
-        _messages.add({'role': 'assistant', 'content': 'This action type is not supported yet.'});
         _pendingAction = null;
       });
     }
+    setState(() {
+      _sending = false;
+    });
   }
 
   void _onCancelAction() {
     setState(() {
-      _messages.add({'role': 'user', 'content': 'Cancel'});
-      _messages.add({'role': 'assistant', 'content': 'Action cancelled.'});
       _pendingAction = null;
     });
-  }
-
-  void _onModelChanged(String? value) {
-    if (value != null) {
-      setState(() {
-        _selectedModel = value;
-      });
-    }
+    setState(() {
+      _sending = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // 模型选择器
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              const Text('AI Model:'),
-              const SizedBox(width: 8),
-              DropdownButton<String>(
-                value: _selectedModel,
-                onChanged: _onModelChanged,
-                items: const [
-                  DropdownMenuItem(value: 'openai', child: Text('OpenAI (GPT)')),
-                  DropdownMenuItem(value: 'gemini', child: Text('Google Gemini')),
+    return Consumer<ChatProvider>(
+      builder: (context, chatProvider, _) {
+        final messages = chatProvider.messages;
+        return Column(
+          children: [
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: messages.length + (_queriedTasks != null ? 1 : 0),
+                itemBuilder: (context, idx) {
+                  if (_queriedTasks != null && idx == messages.length) {
+                    return _buildTaskListCard(_queriedTasks!);
+                  }
+                  final msg = messages[idx];
+                  final isUser = msg.role == 'user';
+                  return Align(
+                    alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isUser ? Colors.blue[100] : Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(msg.content),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (_pendingTaskIntent != null)
+              TaskConfirmationCard(
+                intent: _pendingTaskIntent!,
+                onConfirm: _confirmTaskAction,
+                onCancel: _cancelTaskAction,
+              ),
+            if (_pendingAction != null)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: _sending ? null : _onConfirmAction,
+                      child: const Text('Confirm'),
+                    ),
+                    const SizedBox(width: 16),
+                    OutlinedButton(
+                      onPressed: _sending ? null : _onCancelAction,
+                      child: const Text('Cancel'),
+                    ),
+                  ],
+                ),
+              ),
+            if (_error != null || chatProvider.error != null)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(_error ?? chatProvider.error!, style: const TextStyle(color: Colors.red)),
+              ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(hintText: 'Type a message...'),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: _sending
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.send),
+                    onPressed: _sending ? null : _sendMessage,
+                  ),
                 ],
               ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: _messages.length + (_queriedTasks != null ? 1 : 0),
-            itemBuilder: (context, idx) {
-              // 显示查询到的任务列表
-              if (_queriedTasks != null && idx == _messages.length) {
-                return _buildTaskListCard(_queriedTasks!);
-              }
-              
-              final msg = _messages[idx];
-              final isUser = msg['role'] == 'user';
-              return Align(
-                alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isUser ? Colors.blue[100] : Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(msg['content'] ?? ''),
-                ),
-              );
-            },
-          ),
-        ),
-        if (_pendingTaskIntent != null)
-          TaskConfirmationCard(
-            intent: _pendingTaskIntent!,
-            onConfirm: _confirmTaskAction,
-            onCancel: _cancelTaskAction,
-          ),
-        if (_pendingAction != null)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: _sending ? null : _onConfirmAction,
-                  child: const Text('Confirm'),
-                ),
-                const SizedBox(width: 16),
-                OutlinedButton(
-                  onPressed: _sending ? null : _onCancelAction,
-                  child: const Text('Cancel'),
-                ),
-              ],
             ),
-          ),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(_error!, style: const TextStyle(color: Colors.red)),
-          ),
-        const Divider(height: 1),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  decoration: const InputDecoration(hintText: 'Type a message...'),
-                  onSubmitted: (_) => _sendMessage(),
-                ),
-              ),
-              IconButton(
-                icon: _sending
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.send),
-                onPressed: _sending ? null : _sendMessage,
-              ),
-            ],
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
   

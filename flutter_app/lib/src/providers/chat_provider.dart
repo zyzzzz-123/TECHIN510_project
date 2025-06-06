@@ -5,6 +5,8 @@ import '../services/chat_history_service.dart';
 import '../services/task_agent_service.dart';
 import 'dart:convert';
 import '../services/auth_service.dart';
+import 'package:http/http.dart' as http;
+import '../config.dart';
 
 class ChatProvider extends ChangeNotifier {
   int? _userId;
@@ -54,13 +56,25 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
-      _groupedHistory = await ChatHistoryService.getChatHistory(
-        authToken: _authToken,
+      // 新增：从后端API获取历史消息
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/chat-history/?days=7&limit=200'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_authToken',
+        },
       );
-      
-      // 加载最近的一组消息作为当前会话
-      if (_groupedHistory.isNotEmpty) {
-        _messages = _groupedHistory.first.messages;
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        _groupedHistory = data.map((group) => GroupedChatMessages.fromJson(group)).toList();
+        // 展示最近一组历史消息
+        if (_groupedHistory.isNotEmpty) {
+          _messages = _groupedHistory.first.messages;
+        } else {
+          _messages = [];
+        }
+      } else {
+        _error = 'Failed to load chat history: ${response.body}';
       }
     } catch (e) {
       _error = 'Failed to load chat history: $e';

@@ -18,7 +18,7 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key, 
     this.onLogout,
-    this.useChatV2 = true,
+    this.useChatV2 = false,
   });
 
   @override

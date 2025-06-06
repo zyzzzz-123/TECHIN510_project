@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:convert' show base64Url, utf8;
 import 'register_screen.dart';
+import 'package:provider/provider.dart';
+import '../../providers/chat_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   final VoidCallback? onLogin;
@@ -105,6 +107,9 @@ class _LoginScreenState extends State<LoginScreen> {
               final userId = int.tryParse(payloadMap['sub']);
               if (userId != null) {
                 await prefs.setInt('user_id', userId);
+                // 同步到 ChatProvider
+                final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+                chatProvider.updateUser(userId, token);
               }
             }
           }
@@ -116,12 +121,12 @@ class _LoginScreenState extends State<LoginScreen> {
         widget.onLogin?.call();
       } else {
         setState(() {
-          _error = '登录失败: ${response.body}';
+          _error = 'Login failed: \\${response.body}';
         });
       }
     } catch (e) {
       setState(() {
-        _error = '网络错误: $e';
+        _error = 'Network error: $e';
       });
     } finally {
     setState(() {
@@ -187,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
                   TextButton(
                     onPressed: _onRegisterPressed,
-                    child: const Text('没有账号？注册'),
+                    child: const Text("Don't have an account? Register"),
                   ),
                 ],
               ),

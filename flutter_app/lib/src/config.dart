@@ -10,7 +10,7 @@ enum Environment {
 
 // Current environment
 // This should be changed when building for different environments
-const Environment currentEnvironment = Environment.development;
+const Environment currentEnvironment = Environment.production;
 
 // API URLs for different environments
 class Config {
@@ -23,7 +23,7 @@ class Config {
   
   // Production URL - 在成功部署后，用实际的 Railway URL 替换这里
   static const String productionUrl = 'https://valiant-enjoyment-production-5fba.up.railway.app';
-  
+
   // Staging URL
   static const String stagingUrl = 'https://staging-api.your-domain.com';
   

@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../home/home_screen.dart';
 import '../../config.dart';
+import 'package:provider/provider.dart';
+import '../../providers/chat_provider.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -52,18 +54,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('logged_in', true);
         await prefs.setInt('user_id', data['id']);
+        // 同步到 ChatProvider
+        final token = data['access_token'] ?? '';
+        final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+        chatProvider.updateUser(data['id'], token);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()),
         );
       } else {
         setState(() {
-          _error = '注册失败: ${response.body}';
+          _error = 'Registration failed: ${response.body}';
         });
       }
     } catch (e) {
       setState(() {
-        _error = '网络错误: $e';
+        _error = 'Network error: $e';
       });
     } finally {
       setState(() {
@@ -87,14 +93,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
-                validator: (v) => v == null || v.isEmpty || !v.contains('@') ? '请输入有效邮箱' : null,
+                validator: (v) => v == null || v.isEmpty || !v.contains('@') ? 'Please enter a valid email' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _passwordController,
                 decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
-                validator: (v) => v == null || v.length < 6 ? '密码至少6位' : null,
+                validator: (v) => v == null || v.length < 6 ? 'Password must be at least 6 characters' : null,
               ),
               const SizedBox(height: 24),
               if (_error != null) ...[
@@ -107,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onPressed: _isLoading ? null : _register,
                   child: _isLoading
                       ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('注册'),
+                      : const Text('Register'),
                 ),
               ),
             ],
